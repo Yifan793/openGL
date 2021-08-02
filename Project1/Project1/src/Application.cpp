@@ -278,7 +278,13 @@ int main(void)
         bool show_another_window = false;
         ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-        test::TestClearColor test;
+        test::Test* currentTest = nullptr;
+        test::TestMenu* testMenu = new test::TestMenu(currentTest);
+        currentTest = testMenu;
+
+        testMenu->RegisterTest<test::TestClearColor>("Clear Color");
+
+        //test::TestClearColor test;
 
         //glm::vec3 translationA(200, 200, 0);
         //glm::vec3 translationB(400, 200, 0);
@@ -289,17 +295,34 @@ int main(void)
         while (!glfwWindowShouldClose(window))
         {
             /* Render here */
+            GLCall(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
             renderer.Clear();
             //glClear(GL_COLOR_BUFFER_BIT);
 
-            test.OnUpdate(0.0f);
-            test.OnRender();
+            //test.OnUpdate(0.0f);
+            //test.OnRender();
 
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
 
-            test.OnImGuiRender();
+            if (currentTest)
+            {
+                currentTest->OnUpdate(0.0f);
+                currentTest->OnRender();
+                ImGui::Begin("Test");
+                if (currentTest != testMenu && ImGui::Button("<-"))
+                {
+                    delete currentTest;
+                    currentTest = testMenu;
+                }
+
+                currentTest->OnImGuiRender();
+
+                ImGui::End();
+            }
+
+            //test.OnImGuiRender();
 
             //原生opengl写三角形
             //glBegin(GL_TRIANGLES);
@@ -395,9 +418,14 @@ int main(void)
             glfwPollEvents();
         }
 
+        delete currentTest;
+        if (currentTest != testMenu)
+            delete testMenu;
+
         //glDeleteProgram(shader); //有了shader类之后，就不需要这句代码了，因为Shader的析构函数里写了这个
         //加这个scope的目的是，关闭了窗口后，glGetError判断没有context会无法停止？因为加了IndexBuffer的类，没有在这之前析构？（大概）
     }
+ 
 
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
